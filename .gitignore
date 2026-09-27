@@ -1,0 +1,8 @@
+node_modules/
+engine/node_modules/
+browser-tools/
+research-examples/
+research/
+tests/*.png
+tests/*.jpg
+*.zip

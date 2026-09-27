@@ -1,0 +1,11 @@
+{
+  "checks": [
+    "Full quality 1280x720",
+    "Escape returns menu",
+    "Replay restarts at beginning",
+    "Natural completion after targeted end seek returns menu",
+    "390x844 menu",
+    "390x844 letterboxed playback, Economy"
+  ],
+  "errors": []
+}

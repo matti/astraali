@@ -1,0 +1,22 @@
+diff --git a/src/Settings.js b/src/Settings.js
+index cfeda0a..5244d3a 100644
+--- a/src/Settings.js
++++ b/src/Settings.js
+@@ -36,7 +36,7 @@ Settings.prototype.asJson = function () {
+ Settings.prototype.init = function () {
+   this.engine = {
+     demoPathPrefix: 'data/', // default demo project root
+-    tool: true, // true = enable tool mode, false = player mode
++    tool: false, // TEMPORARY/FOREVER player default. true = enable tool mode, false = player mode
+     pauseOnInvisibility: true, // Pause demo if tab is not visible
+     fileWatchInterval: 250, // Interval in milliseconds to check for file changes
+     preload: true, // Preload all resources before starting the demo, for quicker demo development it's recommended to set this to false
+@@ -67,7 +67,7 @@ Settings.prototype.init = function () {
+ 
+   this.tool = {
+     server: {
+-      enabled: true, // if tool mode should connect to tool server (program in tool_server/ directory)
++      enabled: false, // TEMPORARY/FOREVER player default. if tool mode should connect to tool server (program in tool_server/ directory)
+       uriScheme: 'ws', // communication protocol
+       host: 'localhost', // host address
+       port: 7447 // host port

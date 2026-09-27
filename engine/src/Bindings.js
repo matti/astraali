@@ -1,0 +1,115 @@
+import { Timer } from './Timer';
+import { Settings } from './Settings';
+import { Utils } from './Utils';
+
+const settings = new Settings();
+
+const initialTime = performance.now();
+let previousText;
+
+function showAlertBanner(message, type = 'error') {
+  const alertBanner = document.getElementById('alert-banner');
+  const alertMessage = document.getElementById('alert-message');
+
+  if (alertBanner && alertMessage) {
+    alertMessage.innerHTML = message;
+
+    // Set banner background color based on log type
+    if (type === 'error') {
+      alertBanner.style.backgroundColor = '#f44336';
+    } else if (type === 'warn') {
+      alertBanner.style.backgroundColor = '#ff9800';
+    } else {
+      // info, debug, trace and unknown types
+      alertBanner.style.backgroundColor = '#607d8b';
+    }
+
+    alertBanner.style.display = 'block';
+  }
+}
+
+function log(type, txt, optionalParams) {
+  // This console printing thing causes heavy delays in the browser
+  // let elem = document.getElementById('panel-console');
+  // if (elem) {
+  //    elem.innerHTML += '<p>'+((new Date()).toISOString())+' ['+type.toUpperCase()+']: '+txt+'</p>';
+  //    elem.scrollTop = elem.scrollHeight;
+  // }
+
+  if (settings.engine.enabledLogLevels.includes(type) === false) {
+    return;
+  }
+
+  const originalType = type;
+
+  if (type === 'trace') {
+    type = 'debug';
+    if (settings.engine.enabledLogLevels.includes(type) === false) {
+      return;
+    }
+  }
+
+  if (previousText === txt) {
+    return;
+  }
+
+  previousText = txt;
+
+  const animation = Utils.getActiveAnimation();
+  let traceText = '';
+  if (animation?._debug?.src) {
+    const src = animation._debug.src;
+    traceText = `(${src.function}@${src.shortFile}:${src.lineNumber}:${src.columnNumber})`;
+  }
+
+  let time = new Timer().getTimeInSeconds().toFixed(2);
+  if (time === '0.00') {
+    time += ` (${(performance.now() - initialTime).toFixed(0)} ms)`;
+  }
+  const msg = `${time} [${originalType.toUpperCase()}]: ${txt} ${traceText}`;
+  if (optionalParams) {
+    console[type](msg, optionalParams);
+  } else {
+    console[type](msg);
+  }
+
+  // Show alert banner for specified log levels when in tool mode
+  if (
+    settings.engine.tool &&
+    settings.engine.bannerLogLevels.includes(originalType)
+  ) {
+    const bannerMessage = `<strong>${originalType.toUpperCase()}:</strong> ${txt}`;
+    showAlertBanner(bannerMessage, originalType);
+  }
+}
+
+export function loggerTrace(txt, optionalParams) {
+  log('trace', txt, optionalParams);
+}
+export function loggerDebug(txt, optionalParams) {
+  log('debug', txt, optionalParams);
+}
+export function loggerInfo(txt, optionalParams) {
+  log('info', txt, optionalParams);
+}
+export function loggerWarning(txt, optionalParams) {
+  log('warn', txt, optionalParams);
+}
+export function loggerError(txt, optionalParams) {
+  log('error', txt, optionalParams);
+}
+
+let windowTitle = '';
+export function windowSetTitle(title) {
+  windowTitle = title;
+  document.title = windowTitle;
+}
+
+export function windowSetTitleTime() {
+  const newTitle = `${windowTitle} - ${new Timer().getTimeInSeconds().toFixed(0)}/${(new Timer().endTime / 1000.0).toFixed(0)}`;
+  if (newTitle !== document.title) {
+    document.title = newTitle;
+  }
+}
+
+export { showAlertBanner };

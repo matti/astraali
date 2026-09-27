@@ -1,0 +1,4 @@
+https://github.com/jumalauta/jml-engine-webgl
+e58a1f6fc16e75003b2509a5471db27645191b41
+Two local default-setting changes: player mode and tool server disabled.
+See docs/engine-player-defaults.patch. No rendering, loader, animation, timer or audio engine implementation changed.

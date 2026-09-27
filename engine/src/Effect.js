@@ -1,0 +1,255 @@
+import { Loader } from './Loader';
+import { Player } from './Player';
+import {
+  loggerDebug,
+  loggerInfo,
+  loggerError,
+  loggerWarning,
+  windowSetTitle
+} from './Bindings';
+import { Music } from './Music';
+import { Sync } from './Sync';
+import { LoadingBar } from './LoadingBar';
+import { Timer } from './Timer';
+import { DemoRenderer } from './DemoRenderer';
+import { FileManager } from './FileManager';
+import { Video } from './Video';
+import { Spectogram } from './Spectogram';
+import { Settings } from './Settings';
+import { isStarted, stopDemo, startAnimate } from './main';
+import { ToolUi } from './ToolUi';
+import { ToolClient } from './ToolClient';
+
+const settings = new Settings();
+
+/** @constructor */
+const Effect = function () {};
+
+Effect.effects = [];
+
+async function processPromises(promises, startPercent, endPercent) {
+  const loadingBar = new LoadingBar();
+  const promiseCount = promises.length;
+  let processedPromises = 0;
+
+  for (let i = 0; i < promiseCount; i++) {
+    promises[i] = promises[i]
+      .finally(() => {
+        processedPromises++;
+        const percent =
+          startPercent +
+          (processedPromises / promiseCount) * (endPercent - startPercent);
+        loadingBar.setPercent(percent);
+      })
+      .catch((err) => {
+        loggerInfo(
+          `Promise failed in processing, ${i}/${promiseCount}: ${err}`
+        );
+      });
+  }
+
+  while (promises.length > 0) {
+    if (isStarted() === false) {
+      loggerInfo('Demo stopped, exiting asset loading');
+      stopDemo();
+      return false;
+    }
+
+    await promises.shift().catch((err) => {
+      throw err;
+    });
+  }
+
+  return true;
+}
+
+Effect.init = function (effectName) {
+  (async () => {
+    loggerDebug('Starting loading');
+    const toolClient = new ToolClient();
+
+    const loadingBar = new LoadingBar();
+    try {
+      if (Effect.loading === true) {
+        loggerWarning(`Already loading ${effectName}! Ignoring init.`);
+        return;
+      }
+      const now = new Date().getTime() / 1000;
+
+      Effect.loading = true;
+
+      const timer = new Timer();
+
+      let forceResume = false;
+      if (timer.isStarted()) {
+        if (!timer.isPaused()) {
+          timer.pause();
+          forceResume = true;
+        }
+      }
+
+      const fileManager = new FileManager();
+      await fileManager.loadUpdatedFiles();
+
+      const effect = eval('new ' + effectName);
+      if (toolClient.isConnected()) {
+        toolClient.synchronizeSettings();
+      }
+
+      effect.loader = new Loader();
+      effect.player = new Player();
+      effect.player.setLoader(effect.loader);
+
+      Effect.effects[effectName] = effect;
+
+      await fileManager.waitForFilesToLoad();
+
+      if (effect.init !== undefined) {
+        effect.init();
+        if (toolClient.isConnected()) {
+          toolClient.synchronizeSettings();
+        }
+      }
+
+      if (effect.postInit !== undefined) {
+        effect.postInit();
+      }
+
+      effect.loader.addPromise(new Spectogram().init());
+
+      const music = new Music();
+      if (settings.demo.music.musicFile) {
+        effect.loader.addPromise(music.load(settings.demo.music.musicFile));
+      } else {
+        if (settings.demo.duration === undefined) {
+          throw new Error(
+            'Demo duration is not defined and no music file is provided, please define settings.demo.music.musicFile or settings.demo.duration'
+          );
+        }
+      }
+
+      const demoRenderer = new DemoRenderer();
+      demoRenderer.clear();
+
+      loadingBar.setPercent(0.0);
+      new ToolUi().clearScenes();
+
+      Video.clear();
+
+      if (!(await processPromises(effect.loader.promises, 0.0, 0.8))) {
+        return;
+      }
+
+      timer.setEndTime(settings.demo.duration || music.getDuration() * 1000);
+
+      loadingBar.setPercent(0.85);
+      await new Sync().init();
+      effect.loader.processAnimation();
+
+      let action;
+      if (isStarted()) {
+        new ToolUi().show();
+
+        if (!timer.isStarted()) {
+          if (settings.engine.preload) {
+            const now = Date.now();
+            const steps = settings.engine.preloadSteps || 100;
+            const demoRenderer = new DemoRenderer();
+
+            for (let i = 0; i < steps; i++) {
+              const percent = i / steps;
+              effect.loader.addPromise(demoRenderer.preload(percent));
+            }
+
+            if (!(await processPromises(effect.loader.promises, 0.85, 0.99))) {
+              return;
+            }
+
+            const programs = demoRenderer.renderer.info.programs;
+            let compileFailure = false;
+
+            for (let i = 0; i < programs.length; i++) {
+              const diagnostics = programs[i].diagnostics;
+              if (diagnostics && diagnostics.runnable === false) {
+                compileFailure = true;
+                loggerWarning(`Shader compilation failed: ${programs[i].name}`);
+              }
+            }
+
+            if (compileFailure) {
+              throw new Error('Shader compilation failed');
+            }
+
+            Video.stop();
+
+            loggerDebug(
+              `Preloading ${steps} frames took ${Date.now() - now} ms`
+            );
+          }
+
+          timer.start();
+          action = 'Starting';
+        }
+        if (forceResume) {
+          timer.pause();
+          action = 'Resuming';
+        }
+      } else {
+        action = 'Not starting';
+        stopDemo();
+      }
+      loggerInfo(
+        `${action} demo. Loading took ${(new Date().getTime() / 1000 - now).toFixed(2)} seconds`
+      );
+    } catch (error) {
+      windowSetTitle('LOADING ERROR');
+
+      if (error instanceof Error) {
+        loggerError(
+          'Error in loading demo: ' +
+            (error.message || '') +
+            ', stack: ' +
+            (error.stack || '')
+        );
+      } else {
+        loggerError('Error in loading demo');
+      }
+
+      stopDemo();
+    } finally {
+      Effect.loading = false;
+
+      loadingBar.setPercent(1.0);
+
+      const time = settings.engine.startTime || 0;
+      startAnimate(time);
+      settings.engine.startTime = 0;
+    }
+  })();
+};
+
+Effect.run = function (effectName) {
+  const effect = Effect.effects[effectName];
+
+  if (effect.run !== undefined) {
+    effect.run();
+  } else {
+    effect.player.drawAnimation(effect.loader);
+  }
+};
+
+Effect.deinit = function (effectName) {
+  const effect = Effect.effects[effectName];
+
+  if (effect.deinit !== undefined) {
+    effect.deinit();
+  } else {
+    effect.loader.deinitAnimation();
+  }
+
+  delete Effect.effects[effectName];
+};
+
+window.DemoEngine = window.DemoEngine || {};
+window.DemoEngine.Effect = Effect;
+export { Effect };

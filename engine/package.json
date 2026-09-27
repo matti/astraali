@@ -1,0 +1,57 @@
+{
+  "name": "jml-engine-webgl",
+  "version": "1.0.0",
+  "description": "JML Demo Engine",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "test": "jest && npm --prefix tool_server run test",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "src/**/*.js": [
+      "prettier --check",
+      "eslint"
+    ],
+    "tool_server/src/**/*.js": [
+      "prettier --check",
+      "eslint"
+    ],
+    "*.js": [
+      "prettier --check",
+      "eslint"
+    ],
+    "*.mjs": [
+      "prettier --check",
+      "eslint"
+    ]
+  },
+  "author": "",
+  "license": "Zlib",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@tonejs/midi": "^2.0.28",
+    "stats.js": "^0.17.0",
+    "three": "^0.179.1",
+    "tweakpane": "^4.0.5"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.4.1",
+    "@commitlint/config-conventional": "^20.4.1",
+    "@eslint/eslintrc": "^3.3.3",
+    "@eslint/js": "^9.39.2",
+    "eslint": "^9.39.2",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-n": "^17.24.0",
+    "eslint-plugin-promise": "^7.2.1",
+    "globals": "^16.5.0",
+    "husky": "^9.1.7",
+    "jest": "^30.2.0",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.1",
+    "vite": "^7.3.1",
+    "vite-plugin-singlefile": "^2.3.0"
+  }
+}

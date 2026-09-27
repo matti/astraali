@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#ed4b19"><title>TEMPORARY / FOREVER</title><link rel="icon" href="./icon.svg"><link rel="stylesheet" href="./src/style.css"></head>
+<body>
+<canvas id="canvas" hidden></canvas>
+<main id="front">
+  <header><span>JUMALAUTA ENGINE / ORIGINAL REALTIME DEMO</span><span>WORK ORDER 001—∞</span></header>
+  <div class="headline"><span>TEMPORARY</span><span class="outline">FOREVER</span></div>
+  <div class="intro"><p>A monument to the thing<br>that was only here for a minute.</p><div class="cone"><i></i></div><span class="edition">130 SECONDS<br>OF ESSENTIAL<br>NON-PROGRESS.</span></div>
+  <div class="menu"><button id="start">ENTER THE WORK ZONE <span>↗</span></button><div class="options"><label for="qualityList">RENDER</label><select id="qualityList"><option value="0.5">Economy</option><option value="0.75" selected>Standard</option><option value="1">Full</option></select><label id="fullscreenLabel"><input id="fullscreen" type="checkbox" onclick="toggleFullscreen()"> Fullscreen</label><select id="demoList" hidden></select><div id="demoMenuControls"></div></div></div>
+  <footer><span>MUSIC: ROCK HYBRID / KEVIN MACLEOD<br>HEADPHONES ENCOURAGED · ESC TO EXIT · F FOR FULLSCREEN</span><a href="./credits/music.txt" target="_blank">MUSIC & LICENSE ↗</a></footer>
+</main>
+<div id="alert-banner" hidden><span id="alert-message"></span></div><div id="panel"><input id="timeline-slider" type="range" hidden></div>
+<script type="module" src="./src/main.js"></script></body></html>

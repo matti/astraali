@@ -1,0 +1,150 @@
+import * as THREE from 'three';
+import { loggerDebug, loggerError } from './Bindings';
+import { Timer } from './Timer';
+import { FileManager } from './FileManager';
+
+const AudioFile = function () {
+  this.init();
+};
+
+AudioFile.prototype.init = function () {
+  this.stop();
+  this.listener = undefined;
+  this.audio = undefined;
+  this.duration = undefined;
+  this.error = undefined;
+  this.volume = 1.0;
+  this.loop = false;
+};
+
+AudioFile.prototype.setVolumeInit = function (volume) {
+  this.volume = volume;
+};
+
+AudioFile.prototype.setLoopInit = function (loop) {
+  this.loop = loop;
+};
+
+AudioFile.prototype.load = function (url) {
+  if (!url.toUpperCase().endsWith('.MP3')) {
+    // To ensure best possible cross-browser and engine support, supported file formats are being restricted
+    throw new Error('Unsupported AudioFile format ' + url);
+  }
+
+  const fileManager = new FileManager();
+  const path = fileManager.getPath(url);
+
+  const instance = this;
+  return new Promise((resolve, reject) => {
+    if (instance.duration) {
+      loggerDebug(
+        'Loaded AudioFile from cache ' +
+          path +
+          ' (length ' +
+          instance.duration +
+          's)'
+      );
+      resolve(instance);
+      return;
+    }
+    const loader = new THREE.AudioLoader();
+    loader.load(
+      path,
+      function (buffer) {
+        fileManager.monitorFile(url);
+
+        instance.listener = new THREE.AudioListener();
+        instance.audio = new THREE.Audio(instance.listener);
+        instance.audio.setBuffer(buffer);
+        instance.audio.setVolume(instance.volume);
+        instance.audio.setLoop(instance.loop);
+        instance.duration = buffer.duration;
+        loggerDebug(
+          'Loaded AudioFile ' + path + ' (length ' + instance.duration + 's)'
+        );
+        resolve(instance);
+      },
+      undefined,
+      function (err) {
+        loggerError(`Failed to load AudioFile ${path}: ${err}`);
+        instance.error = true;
+        reject(err);
+      }
+    );
+  });
+};
+
+AudioFile.prototype.setVolume = function (volume) {
+  if (!this.audio) {
+    return false;
+  }
+  this.audio.setVolume(volume);
+};
+
+AudioFile.prototype.setLoop = function (loop) {
+  if (!this.audio) {
+    return false;
+  }
+  this.audio.setLoop(loop);
+};
+
+AudioFile.prototype.getDuration = function () {
+  return this.duration;
+};
+
+AudioFile.prototype.isPlaying = function () {
+  if (!this.audio) {
+    return false;
+  }
+  return this.audio.isPlaying;
+};
+
+AudioFile.prototype.play = function () {
+  if (!this.audio) {
+    return;
+  }
+  this.audio.play();
+};
+
+AudioFile.prototype.stop = function () {
+  if (!this.audio) {
+    return;
+  }
+  this.audio.stop();
+};
+
+AudioFile.prototype.pause = function () {
+  if (!this.audio) {
+    return;
+  }
+
+  if (new Timer().isPaused()) {
+    this.audio.pause();
+  } else {
+    this.audio.play();
+  }
+};
+
+AudioFile.prototype.setTime = function (time) {
+  if (!this.audio) {
+    return;
+  }
+  this.stop();
+  this.audio.offset = time;
+  this.play();
+  if (new Timer().isPaused()) {
+    this.pause();
+  }
+};
+
+AudioFile.prototype.getTime = function () {
+  if (!this.context) {
+    return undefined;
+  }
+
+  return this.context.currentTime;
+};
+
+window.AudioFile = AudioFile;
+
+export { AudioFile };
